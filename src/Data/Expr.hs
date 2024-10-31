@@ -1,23 +1,28 @@
 module Data.Expr where
 
-import Data.Type
+import Common
+import qualified Text.Show
 
-type Name = String
+type Var = String
+type Tag = String
 
-data Lit = LInt Int
+newtype Lit = LInt Int
 
 data Expr =
-    EVar Name
+    EVar Var
+  | ETag Tag
   | ELit Lit
-  | ELet [(Name,Expr)] Expr
-  | EAbs Name Expr
+  | ELet [(Var,Expr)] Expr
+  | EAbs Var Expr
   | EApp Expr Expr
+  | ECase Expr [(Pat,Expr)]
   deriving Show
 
-data Pat = PVar Name
-  | PWildcard
+data Pat =
+    PWildcard
   | PLit Lit
-  | PCon Scheme [Pat]
+  | PCons Tag [Var]
+  deriving Show
 
 instance Show Lit where
   show (LInt n) = show n

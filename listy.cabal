@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.36.0.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Common
       Control.Monad.Check
       Control.Monad.RS
       Data.Expr
@@ -36,6 +37,7 @@ library
       Semantics.Eval
       Semantics.Prim
       Typing.Infer
+      Typing.InferN
       Typing.Prim
       Typing.Subst
   other-modules:
@@ -46,12 +48,15 @@ library
       src
   default-extensions:
       TupleSections
+      NoImplicitPrelude
+      OverloadedStrings
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
     , containers
     , mtl
     , parsec
+    , relude
     , repline
     , text
   default-language: Haskell2010
@@ -66,6 +71,8 @@ executable listy-exe
       app
   default-extensions:
       TupleSections
+      NoImplicitPrelude
+      OverloadedStrings
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
@@ -73,6 +80,7 @@ executable listy-exe
     , listy
     , mtl
     , parsec
+    , relude
     , repline
     , text
   default-language: Haskell2010
@@ -88,6 +96,8 @@ test-suite listy-test
       test
   default-extensions:
       TupleSections
+      NoImplicitPrelude
+      OverloadedStrings
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
@@ -95,6 +105,7 @@ test-suite listy-test
     , listy
     , mtl
     , parsec
+    , relude
     , repline
     , text
   default-language: Haskell2010

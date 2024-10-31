@@ -24,6 +24,7 @@ dependencies:
 - containers
 - mtl
 - parsec
+- relude
 - repline
 - text
 
@@ -65,3 +66,5 @@ tests:
 
 default-extensions:
 - TupleSections
+- NoImplicitPrelude
+- OverloadedStrings

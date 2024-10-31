@@ -1,18 +1,16 @@
 module Parser.SExpr where
 
+import Common hiding ((<|>), many)
 import           Text.Parsec.Text   (Parser)
-import Control.Monad.Check (Check)
 import Data.Expr
 
-import Data.Text (Text, pack)
 import           Text.Parsec
 import qualified Text.Parsec.Token       as Tok
 
-import           Control.Monad.Identity  (Identity)
-
 data SExpr =
   SEInt Int
-  | SESym Name
+  | SESym Var
+  | SETag Tag
   | SEBList [SExpr] -- bracket list
   | SEList [SExpr]
   deriving (Show, Eq)
@@ -38,11 +36,11 @@ lexerDef =  Tok.LanguageDef
 lexer :: Tok.GenTokenParser Text () Identity
 lexer = Tok.makeTokenParser lexerDef
 
-ident :: Parser Name
+ident :: Parser Var
 ident = Tok.identifier lexer
 
--- tag :: Parser Tag
--- tag = (:) <$> upper <*> many (Tok.identLetter lexerDef)
+tag :: Parser Tag
+tag = (:) <$> upper <*> many (Tok.identLetter lexerDef)
 
 parens :: Parser a -> Parser a
 parens = Tok.parens lexer
@@ -59,7 +57,7 @@ textLiteral = Tok.stringLiteral lexer
 sExpr :: Parser SExpr
 sExpr = SEInt <$> natural
   -- <|> SEStr <$> textLiteral
-  -- <|> SESym <$> tag
+  <|> SETag <$> tag
   <|> SESym <$> ident
   <|> SEBList <$> brackets (many sExpr)
   <|> SEList <$> parens (many sExpr)

@@ -3,9 +3,7 @@
 {-# LANGUAGE TupleSections #-}
 module Control.Monad.RS(RST(..), evalRST, execRST) where
 
-import Control.Monad.Trans (MonadTrans, lift)
-import Control.Monad.Reader (MonadReader, ask, local)
-import Control.Monad.State (MonadState, get, put)
+import Common
 
 newtype RST r s m a = RST {runRST :: r -> s -> m (a,s)}
 

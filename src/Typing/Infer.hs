@@ -1,19 +1,19 @@
+{-# LANGUAGE GeneralisedNewtypeDeriving #-}
 module Typing.Infer where
 
+import Common
 import Control.Monad.Check (Check)
-import Control.Monad (replicateM, foldM)
-import Control.Monad.Reader ( MonadReader(local, ask) )
-import           Control.Monad.RS
-import Control.Monad.State ( modify, MonadState(get) )
+import Control.Monad (foldM)
 import           Data.Expr
 import qualified Data.Map          as M
 import qualified Data.Set          as S
 import           Data.Type
 import           Typing.Subst
 
-type TEnv = M.Map Name Scheme
+type TEnv = M.Map Var Scheme
 type InferState = Int
-type Infer a = RST TEnv InferState Check a
+newtype Infer a = Infer (ReaderT TEnv (StateT InferState Check) a)
+  deriving (Functor, Applicative, Monad, MonadReader TEnv, MonadState InferState, MonadFail)
 
 initialInferState :: InferState
 initialInferState = 0
@@ -30,13 +30,13 @@ freshVar :: Infer Type
 freshVar = do
   i <- get
   modify succ
-  return $ TVar (typeVars !! i)
+  return $ TVar (nth typeVars i "!?")
 
 instanciate :: Scheme -> Infer Type
 instanciate (Forall xs t) = do
   let tvs = S.toList xs
   tvs' <- mapM (const freshVar) tvs
-  let sub = M.fromList (zip tvs tvs')
+  let sub = Subst $ M.fromList (zip tvs tvs')
   return (apply sub t)
 
 generalize :: Type -> Infer Scheme
@@ -45,13 +45,13 @@ generalize t = do
   let xs = S.difference (ftv t) (ftv env)
   return (Forall xs t)
 
-inEnv :: [(Name,Scheme)] -> Infer a -> Infer a
+inEnv :: [(Var,Scheme)] -> Infer a -> Infer a
 inEnv bs = local scope
   where
     scope :: TEnv -> TEnv
     scope env = foldr (\(x,sc) e -> M.insert x sc e) env bs
 
-lookupTEnv :: Name -> Infer Type
+lookupTEnv :: Var -> Infer Type
 lookupTEnv x = do
   env <- ask
   case M.lookup x env of
@@ -67,9 +67,9 @@ inferBind :: ([Scheme], Subst) -> Expr -> Infer ([Scheme], Subst)
 inferBind (scs,sub) e = do
   (t,sub') <- local (apply sub) (infer e)
   sc <- generalize t
-  return (scs ++ [sc], sub' `compose` sub)
+  return (scs ++ [sc], sub' <> sub)
 
-inferBinds :: [(Name,Expr)] -> Infer ([(Name,Scheme)], Subst)
+inferBinds :: [(Var,Expr)] -> Infer ([(Var,Scheme)], Subst)
 inferBinds binds = do
   let (xs,es) = unzip binds
   tvs <- mapM (const freshVar) binds
@@ -78,8 +78,8 @@ inferBinds binds = do
   return ([(x, apply sub t) | (x,t) <- xBinds], sub)
 
 infer :: Expr -> Infer (Type, Subst)
-infer (ELit l) = (,emptySubst) <$> inferLit l
-infer (EVar x) = (,emptySubst) <$> lookupTEnv x
+infer (ELit l) = (,mempty) <$> inferLit l
+infer (EVar x) = (,mempty) <$> lookupTEnv x
 infer (EAbs x e) = do
   tv <- freshVar
   (tBody,sub) <- local (M.insert x (Forall mempty tv)) (infer e)
@@ -89,11 +89,24 @@ infer (EApp e1 e2) = do
   (t1,sub1) <- infer e1
   (t2,sub2) <- local (apply sub1) (infer e2)
   sub3 <- unify (apply sub2 t1) (t2 `TArrow` tv)
-  return (apply sub3 tv, sub3 `compose` sub2 `compose` sub1)
+  return (apply sub3 tv, sub3 <> sub2 <> sub1)
 infer (ELet binds body) = do
   (bs,sub) <- inferBinds binds
   let (xs,scs) = unzip bs
   inEnv (zip xs (apply sub scs)) (infer body)
+infer (ECase e pes) = do
+  (t, sub) <- infer e
+  undefined
+
+inferCase :: Type -> (Pat, Expr) -> Infer Type
+inferCase t (p, e) = do
+  binds <- inferPat p t
+  undefined
+
+inferPat :: Pat -> Type -> Infer [(Var,Scheme)]
+inferPat PWildcard _ = return []
+inferPat (PLit (LInt _)) (TBase "int") = return []
+inferPat _ _ = fail "fail inferPat"
 
 inferScheme :: Expr -> Infer Scheme
 inferScheme e = do
@@ -107,4 +120,4 @@ inferScheme e = do
 --   return sBinds
 
 runInfer :: Infer Scheme -> TEnv -> Check Scheme
-runInfer m env = evalRST m env initialInferState
+runInfer (Infer m) env = evalStateT (runReaderT m env) initialInferState

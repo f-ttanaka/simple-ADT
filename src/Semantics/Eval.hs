@@ -10,6 +10,7 @@ data Val = VInt Int
   -- 変数がある場合は関数のクロージャ
   | VClosure (Maybe Name) Expr VEnv
   | VPrim (Expr -> Eval Val)
+  | VTuple Val Val
 
 instance Show Val where
   show (VInt n)      = show n
@@ -17,6 +18,7 @@ instance Show Val where
   show (VBool False) = "false"
   show VClosure{}    = "<closure>"
   show VPrim{}       = "<primitive>"
+  show (VTuple v1 v2) = "(" ++ show v1 ++ "," ++ show v2 ++ ")"
 
 type VEnv = M.Map Name Val
 type Eval a = ReaderT VEnv Check a
@@ -72,6 +74,7 @@ eval (ELet defs bod) = do
   env <- ask
   let env' = M.union (M.fromList [(x, toClosure env' e) | (x,e) <- defs]) env
   local (const env') (eval bod)
+eval (ETuple e1 e2) = VTuple <$> eval e1 <*> eval e2
 
 runEval :: Eval Val -> VEnv -> Check Val
 runEval = runReaderT
