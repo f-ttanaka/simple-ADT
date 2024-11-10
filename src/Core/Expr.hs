@@ -19,7 +19,8 @@ data Expr =
   | ECase Expr [(Pat,Expr)]
   deriving Show
 
-data Pat where
-  PWildcard :: Pat
-  PCons :: Tag -> [Var] -> Pat
+data Pat =
+    PWildcard
+  | PVar Var
+  | PCons Tag [Var]
   deriving Show

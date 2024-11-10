@@ -11,8 +11,6 @@ import qualified Data.Map          as M
 import qualified Data.Set          as S
 
 type TIEnv = (TyEnv, ConstructorEnv)
-type TICheck = Either SomeException
-
 type InferState = Int
 newtype Infer m a = Infer (ReaderT TIEnv (StateT InferState m) a)
   deriving 
@@ -78,6 +76,13 @@ inferType (EApp e1 e2) = do
   sub3 <- unify (apply sub2 tf) (ta `tyFunc` tv)
   return (apply sub3 tv, sub3 <> sub2 <> sub1)
 inferType _ = throwString "yet to be implemented."
+
+inferPat :: MonadThrow m => Pat -> Infer m Type
+inferPat PWildcard = undefined
+inferPat (PVar x) = freshVar
+inferPat (PCons tag pats) = undefined
+
+-- start to execute inference monad
 
 inferScheme :: MonadThrow m => Expr -> Infer m Scheme
 inferScheme e = do

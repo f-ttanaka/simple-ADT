@@ -32,4 +32,4 @@ showTyVar :: Uniq -> String
 showTyVar i = nth typeVars i "!?"
 
 tyFunc :: Type -> Type -> Type
-tyFunc t1 t2 = TyCon "Func" [t1, t2]
+tyFunc t1 t2 = TyCon "->" [t1, t2]
