@@ -26,20 +26,18 @@ source-repository head
 library
   exposed-modules:
       Common
-      Control.Monad.Check
-      Control.Monad.RS
-      Data.Expr
-      Data.Type
-      Parser.Expr
-      Parser.SExpr
+      Core.Env
+      Core.Expr
+      Core.Parser
+      Core.Type
+      Core.Typing.Infer
+      Core.Typing.Subst
       Repl.Exec
+      Repl.Parser
+      Repl.State
       Repl.Stmt
-      Semantics.Eval
-      Semantics.Prim
-      Typing.Infer
-      Typing.InferN
-      Typing.Prim
-      Typing.Subst
+      SExpr.Internal
+      SExpr.Parser
   other-modules:
       Paths_listy
   autogen-modules:
@@ -50,14 +48,18 @@ library
       TupleSections
       NoImplicitPrelude
       OverloadedStrings
+      GeneralisedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
     , containers
+    , exceptions
+    , lens
     , mtl
     , parsec
     , relude
     , repline
+    , safe-exceptions
     , text
   default-language: Haskell2010
 
@@ -73,15 +75,19 @@ executable listy-exe
       TupleSections
       NoImplicitPrelude
       OverloadedStrings
+      GeneralisedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , containers
+    , exceptions
+    , lens
     , listy
     , mtl
     , parsec
     , relude
     , repline
+    , safe-exceptions
     , text
   default-language: Haskell2010
 
@@ -98,14 +104,18 @@ test-suite listy-test
       TupleSections
       NoImplicitPrelude
       OverloadedStrings
+      GeneralisedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , containers
+    , exceptions
+    , lens
     , listy
     , mtl
     , parsec
     , relude
     , repline
+    , safe-exceptions
     , text
   default-language: Haskell2010

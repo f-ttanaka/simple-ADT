@@ -22,10 +22,13 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - containers
+- exceptions
+- lens
 - mtl
 - parsec
 - relude
 - repline
+- safe-exceptions
 - text
 
 ghc-options:
@@ -68,3 +71,4 @@ default-extensions:
 - TupleSections
 - NoImplicitPrelude
 - OverloadedStrings
+- GeneralisedNewtypeDeriving

@@ -1,19 +1,11 @@
-module Parser.SExpr where
+module SExpr.Parser where
 
 import Common hiding ((<|>), many)
+import SExpr.Internal
 import           Text.Parsec.Text   (Parser)
-import Data.Expr
 
 import           Text.Parsec
 import qualified Text.Parsec.Token       as Tok
-
-data SExpr =
-  SEInt Int
-  | SESym Var
-  | SETag Tag
-  | SEBList [SExpr] -- bracket list
-  | SEList [SExpr]
-  deriving (Show, Eq)
 
 identSymbol :: Parser Char
 identSymbol = oneOf "!#$%&|*+-/<=>?@^_~"
@@ -36,11 +28,11 @@ lexerDef =  Tok.LanguageDef
 lexer :: Tok.GenTokenParser Text () Identity
 lexer = Tok.makeTokenParser lexerDef
 
-ident :: Parser Var
+ident :: Parser String
 ident = Tok.identifier lexer
 
-tag :: Parser Tag
-tag = (:) <$> upper <*> many (Tok.identLetter lexerDef)
+tag :: Parser String
+tag = Tok.lexeme lexer $ (:) <$> upper <*> many (Tok.identLetter lexerDef)
 
 parens :: Parser a -> Parser a
 parens = Tok.parens lexer
@@ -55,19 +47,19 @@ textLiteral :: Parser String
 textLiteral = Tok.stringLiteral lexer
 
 sExpr :: Parser SExpr
-sExpr = SEInt <$> natural
+sExpr = -- SEInt <$> natural
   -- <|> SEStr <$> textLiteral
-  <|> SETag <$> tag
+  SETag <$> tag
   <|> SESym <$> ident
   <|> SEBList <$> brackets (many sExpr)
   <|> SEList <$> parens (many sExpr)
 
-parseSExpr :: MonadFail m => SourceName -> Text -> m SExpr
+parseSExpr :: MonadThrow m => SourceName -> Text -> m SExpr
 parseSExpr source txt = case parse sExpr source txt of
-  Left err -> fail (show err)
+  Left err -> throwString (show err)
   Right se -> return se
 
-doParse :: MonadFail m => (SExpr -> m a) -> SourceName -> Text -> m a
+doParse :: MonadThrow m => (SExpr -> m a) -> SourceName -> Text -> m a
 doParse p src txt = do
   se <- parseSExpr src txt
   p se
