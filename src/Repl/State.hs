@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Repl.State where
 
@@ -15,3 +16,6 @@ initialState :: ReplState
 initialState = ReplState
   { _tyEnv = mempty
   , _consEnv = mempty}
+
+getTyAndConsEnv :: MonadState ReplState m => m (TyEnv, ConstructorEnv)
+getTyAndConsEnv = (,) <$> use tyEnv <*> use consEnv

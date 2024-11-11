@@ -16,7 +16,7 @@ data Type =
 data Scheme = Forall (Set Uniq) Type
 
 instance Show Type where
-  show (TyVar x) = show x
+  show (TyVar x) = showTyVar x
   show (TyCon tag ts) = String.unwords $ tag : [show t | t <- ts]
 
 instance Show Scheme where

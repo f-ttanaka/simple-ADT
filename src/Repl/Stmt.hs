@@ -23,6 +23,8 @@ newtype Eval m a = Eval (StateT ReplState m a)
     , Applicative
     , Monad
     , MonadThrow
+    , MonadCatch
+    , MonadMask
     , MonadIO
     , MonadState ReplState)
 

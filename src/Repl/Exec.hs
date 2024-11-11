@@ -1,8 +1,8 @@
 module Repl.Exec (runRepl) where
 
 import Common
-import           Data.List              (isPrefixOf)
-import qualified Data.Map               as M
+import Core.Parser (parseExpr)
+import Core.Typing.Infer
 import           Data.Text         (pack)
 import Repl.Parser
 import           Repl.Stmt
@@ -10,36 +10,23 @@ import Repl.State
 import SExpr.Parser
 import           System.Console.Repline hiding (options)
 
-type Repl a = Eval (HaskelineT IO) a
-
--- procStmt (ExprStmt e) = do
---   ist <- get
---   _ <- hoistErr $ runInfer (inferScheme e) (tEnv ist)
---   v <- hoistErr $ runEval (eval e) (vEnv ist)
---   liftIO $ print v
--- procStmt (DefStmt x e) = do
---   ist <- get
---   sc <- hoistErr $ runInfer (inferDef x e) (tEnv ist)
---   -- v <- hoistErr $ runEval (eval e) (vEnv ist)
---   let vEnv' = M.insert x (toClosure vEnv' e) (vEnv ist)
---   put $ ist {vEnv = vEnv', tEnv = M.insert x sc (tEnv ist)}
---   liftIO . putStrLn $ x ++ " : " ++ show sc
+type Repl = HaskelineT (Eval IO)
 
 exec :: String -> Repl ()
 exec source = do
   stmt <- doParse parseStmt "<stdin>" (pack source)
-  evalStmt stmt
+  lift $ evalStmt stmt
 
 -- :quit command
-quit :: a -> HaskelineT IO ()
+quit :: String -> Repl ()
 quit _ = exitSuccess
 
--- seeType :: String -> Repl ()
--- seeType source = do
---   ist <- get
---   e <- doParse parseExpr "<stdin>" (pack source)
---   t <- hoistErr $ runInfer (inferScheme e) (tEnv ist)
---   liftIO $ print t
+seeType :: String -> Repl ()
+seeType source = do
+  (te,ce) <- getTyAndConsEnv
+  e <- doParse parseExpr "<stdin>" (pack source)
+  t <- runInfer e te ce
+  liftIO $ print t
 
 defaultMatcher :: [(String, CompletionFunc m)]
 defaultMatcher = []
@@ -50,16 +37,16 @@ comp n = do
   let cmds = [":q", ":t"]
   return $ filter (isPrefixOf n) cmds
 
-options :: Options (HaskelineT IO)
+options :: Options Repl
 options = [
     ("q"   , quit)
-  --, ("t", seeType)
+  , ("t", seeType)
   ]
 
-ini :: HaskelineT IO ()
+ini :: Repl ()
 ini = putStrLn "REPL for listy"
 
-final :: HaskelineT IO ExitDecision
+final :: Repl ExitDecision
 final = do
   liftIO $ putStrLn "Goodbye!"
   return Exit
@@ -68,14 +55,16 @@ final = do
 -- Entry Point
 -------------------------------------------------------------------------------
 
-completer :: CompleterStyle IO
+completer :: CompleterStyle (Eval IO)
 completer = Prefix (wordCompleter comp) defaultMatcher
 
 runRepl :: IO ()
-runRepl =
+runRepl = runEval $
   evalRepl (const . pure $ "listy> ")
-           (runEval . exec)
+           exec
            options
            (Just ':')
            (Just "paste")
-           completer ini final
+           completer
+           ini
+           final
