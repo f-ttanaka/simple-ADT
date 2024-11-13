@@ -40,7 +40,7 @@ evalConDef :: (MonadIO m, MonadThrow m)
 evalConDef name us (t, tys) = do
   let ty = TyCon name [TyVar u | u <- S.toList us]
       sc = Forall us (foldr tyFunc ty tys)
-  consEnv %= insertCEnv t sc
+  consEnv %= insertCEnv t sc name
 
 runEval :: MonadIO m => Eval m a -> m a
 runEval (Eval m) = evalStateT m initialState

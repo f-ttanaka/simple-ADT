@@ -16,11 +16,10 @@ data Expr =
   | ETag Tag
   | EAbs Var Expr
   | EApp Expr Expr
-  | ECase Expr [(Pat,Expr)]
+  | ECase Expr (NonEmpty (Pat, Expr))
   deriving Show
 
 data Pat =
     PWildcard
-  | PVar Var
   | PCons Tag [Var]
   deriving Show

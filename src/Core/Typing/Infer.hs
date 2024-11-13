@@ -75,12 +75,23 @@ inferType (EApp e1 e2) = do
   (ta,sub2) <- local (first $ apply sub1) (inferType e2)
   sub3 <- unify (apply sub2 tf) (ta `tyFunc` tv)
   return (apply sub3 tv, sub3 <> sub2 <> sub1)
-inferType _ = throwString "yet to be implemented."
+inferType (ECase e ms) = do
+  (te, sub) <- inferType e
+  undefined
 
-inferPat :: MonadThrow m => Pat -> Infer m Type
-inferPat PWildcard = undefined
-inferPat (PVar x) = freshVar
-inferPat (PCons tag pats) = undefined
+inferPat :: MonadThrow m => Pat -> Infer m (Type,Subst)
+inferPat PWildcard = (,mempty) <$> freshVar
+inferPat p@(PCons tag pats) = do
+  info <- lookupCInfo tag =<< askCEnv
+  if tag == patternType info
+    then inferType $ foldl' EApp (ETag tag) (map EVar pats)
+    else throwString $ "pattern is invalid: " ++ show p
+
+inferCase :: MonadThrow m => (Pat,Expr) -> Infer m (Type,Type)
+inferCase (p,e) = do
+  (tyP, sub1) <- inferPat p
+  (tyE, sub2) <- local (first $ apply sub1) (inferType e)
+  return (apply sub2 tyP, tyE)
 
 -- start to execute inference monad
 

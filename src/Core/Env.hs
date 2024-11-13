@@ -17,8 +17,9 @@ lookupTyEnv x (TyEnv env) = case M.lookup x env of
 insertTyEnv :: Var -> Scheme -> TyEnv -> TyEnv
 insertTyEnv x sc (TyEnv env) = TyEnv $ M.insert x sc env
 
-newtype ConstructorInfo = CInfo
-  { constructorType :: Scheme }
+data ConstructorInfo = CInfo
+  { constructorType :: Scheme
+  , patternType :: Tag }
   deriving (Show)
 newtype ConstructorEnv = ConstructorEnv (Map Tag ConstructorInfo)
   deriving (Semigroup, Monoid, Show)
@@ -28,6 +29,12 @@ lookupCInfo tag (ConstructorEnv env) = case M.lookup tag env of
   Just info -> return info
   _ -> throwString $ show tag ++ " is not in constructor env."
 
-insertCEnv :: Tag -> Scheme -> ConstructorEnv -> ConstructorEnv
-insertCEnv t sc (ConstructorEnv env) = 
-  ConstructorEnv $ M.insert t (CInfo {constructorType = sc}) env
+insertCEnv :: Tag -> Scheme -> Tag -> ConstructorEnv -> ConstructorEnv
+insertCEnv t sc pt (ConstructorEnv env) = 
+  ConstructorEnv $ M.insert t info env
+  where
+    info = CInfo 
+      {
+        constructorType = sc
+      , patternType = pt
+      }
