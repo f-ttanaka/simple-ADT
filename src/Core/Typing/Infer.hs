@@ -13,7 +13,7 @@ import qualified Data.Set          as S
 type TIEnv = (TyEnv, ConstructorEnv)
 type InferState = Int
 newtype Infer m a = Infer (ReaderT TIEnv (StateT InferState m) a)
-  deriving 
+  deriving
     ( Functor
     , Applicative
     , Monad
@@ -76,22 +76,28 @@ inferType (EApp e1 e2) = do
   sub3 <- unify (apply sub2 tf) (ta `tyFunc` tv)
   return (apply sub3 tv, sub3 <> sub2 <> sub1)
 inferType (ECase e ms) = do
-  (te, sub) <- inferType e
-  undefined
+  (te, subE) <- inferType e
+  branchResults <- local (first $ apply subE) $ mapM (inferCase te) ms
+  ret <- freshVar
+  subs <- mapM (\(branchRet, branchSub) -> local (first $ apply branchSub) $ unify branchRet ret) branchResults
+  return (ret, fold subs)
 
-inferPat :: MonadThrow m => Pat -> Infer m (Type,Subst)
-inferPat PWildcard = (,mempty) <$> freshVar
-inferPat p@(PCons tag pats) = do
-  info <- lookupCInfo tag =<< askCEnv
-  if tag == patternType info
-    then inferType $ foldl' EApp (ETag tag) (map EVar pats)
-    else throwString $ "pattern is invalid: " ++ show p
-
-inferCase :: MonadThrow m => (Pat,Expr) -> Infer m (Type,Type)
-inferCase (p,e) = do
-  (tyP, sub1) <- inferPat p
+inferCase :: MonadThrow m => Type -> (Pat,Expr) -> Infer m (Type, Subst)
+inferCase scrutinee (p,e) = do
+  tv <- freshVar
+  sub1 <- inspectPattern tv p
   (tyE, sub2) <- local (first $ apply sub1) (inferType e)
-  return (apply sub2 tyP, tyE)
+  sub3 <- local (first $ apply (sub2 <> sub1)) (unify scrutinee tv)
+  return (apply sub3 tyE, sub3 <> sub2 <> sub1)
+  where
+    inspectPattern :: MonadThrow m => Type -> Pat -> Infer m Subst
+    inspectPattern _ PWildcard = return mempty
+    inspectPattern scr (PCons c ps) = do
+      pVars <- mapM (const freshVar) ps
+      cInfo <- lookupCInfo c =<< askCEnv
+      let pType = foldr tyFunc scr pVars
+      cType <- instanciate (constructorType cInfo)
+      unify pType cType
 
 -- start to execute inference monad
 

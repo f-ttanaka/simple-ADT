@@ -16,7 +16,7 @@ data Expr =
   | ETag Tag
   | EAbs Var Expr
   | EApp Expr Expr
-  | ECase Expr (NonEmpty (Pat, Expr))
+  | ECase Expr [(Pat, Expr)]
   deriving Show
 
 data Pat =
