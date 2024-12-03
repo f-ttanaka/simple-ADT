@@ -56,43 +56,49 @@ generalize ty = do
   let xs = ftv ty `S.difference` ftv tEnv
   return $ Forall xs ty
 
-inferType :: MonadThrow m => Expr -> Infer m (Type, Subst)
-inferType (EVar x) = do
+inferType :: MonadThrow m => Expr -> Infer m Type
+inferType e = do
+  tyExp <- freshVar
+  sub <- checkType tyExp e
+  return $ apply sub tyExp
+
+checkType :: MonadThrow m => Type -> Expr -> Infer m Subst
+checkType tyExp (EVar x) = do
   sc <- lookupTyEnv x =<< askTyEnv
   ty <- instanciate sc
-  return (ty,mempty)
-inferType (ETag tag) = do
+  unify tyExp ty
+checkType tyExp (ETag tag) = do
   info <- lookupCInfo tag =<< askCEnv
   ty <- instanciate (constructorType info)
-  return (ty,mempty)
-inferType (EAbs x e) = do
+  unify tyExp ty
+checkType tyExp (EAbs x e) = do
+  tVar <- freshVar
+  tBody <- freshVar
+  scVar <- generalize tVar
+  sub1 <- unify tyExp (tVar `tyFunc` tBody)
+  sub2 <- localTyEnv (apply sub1 . insertTyEnv x (apply sub1 scVar)) (checkType tBody e)  
+  return $ sub2 <> sub1
+checkType tyExp (EApp e1 e2) = do
   tv <- freshVar
-  (tBody,sub) <- localTyEnv (insertTyEnv x (Forall mempty tv)) (inferType e)
-  return (apply sub tv `tyFunc` tBody, sub)
-inferType (EApp e1 e2) = do
-  tv <- freshVar
-  (tf,sub1) <- inferType e1
-  (ta,sub2) <- local (first $ apply sub1) (inferType e2)
-  sub3 <- unify (apply sub2 tf) (ta `tyFunc` tv)
-  return (apply sub3 tv, sub3 <> sub2 <> sub1)
-inferType (ECase e ms) = do
-  (te, subE) <- inferType e
-  branchResults <- local (first $ apply subE) $ mapM (inferCase te) ms
-  ret <- freshVar
-  subs <- mapM (\(branchRet, branchSub) -> local (first $ apply branchSub) $ unify branchRet ret) branchResults
-  return (ret, fold subs)
+  sub1 <- checkType (tv `tyFunc` tyExp) e1
+  sub2 <- localTyEnv (apply sub1) (checkType (apply sub1 tv) e2)
+  return $ sub2 <> sub1
+checkType tyExp (ECase e ms) = do
+  tyPat <- freshVar
+  subE <- checkType tyPat e
+  subs <- local (first $ apply subE) $ mapM (checkCase (apply subE tyPat) tyExp) ms
+  return $ fold (reverse subs)
 
-inferCase :: MonadThrow m => Type -> (Pat,Expr) -> Infer m (Type, Subst)
-inferCase scrutinee (p,e) = do
-  tv <- freshVar
-  sub1 <- inspectPattern tv p
-  (tyE, sub2) <- local (first $ apply sub1) (inferType e)
-  sub3 <- local (first $ apply (sub2 <> sub1)) (unify scrutinee tv)
-  return (apply sub3 tyE, sub3 <> sub2 <> sub1)
+-- receives expected types of pattern and return expr
+checkCase :: MonadThrow m => Type -> Type -> (Pat,Expr) -> Infer m Subst
+checkCase tyPat tyRet (p,e) = do
+  sub1 <- checkPattern tyPat p
+  sub2 <- local (first $ apply sub1) (checkType (apply sub1 tyRet) e)
+  return $ sub2 <> sub1
   where
-    inspectPattern :: MonadThrow m => Type -> Pat -> Infer m Subst
-    inspectPattern _ PWildcard = return mempty
-    inspectPattern scr (PCons c ps) = do
+    checkPattern :: MonadThrow m => Type -> Pat -> Infer m Subst
+    checkPattern _ PWildcard = return mempty
+    checkPattern scr (PCons c ps) = do
       pVars <- mapM (const freshVar) ps
       cInfo <- lookupCInfo c =<< askCEnv
       let pType = foldr tyFunc scr pVars
@@ -102,11 +108,9 @@ inferCase scrutinee (p,e) = do
 -- start to execute inference monad
 
 inferScheme :: MonadThrow m => Expr -> Infer m Scheme
-inferScheme e = do
-  (t,_) <- inferType e
-  generalize t
+inferScheme e = generalize =<< inferType e
 
-runInfer :: MonadThrow m => Expr -> TyEnv -> ConstructorEnv -> m Scheme
+runInfer :: MonadCatch m => Expr -> TyEnv -> ConstructorEnv -> m Scheme
 runInfer e tEnv cEnv = evalStateT (runReaderT m (tEnv,cEnv)) initialInferState
   where
     Infer m = inferScheme e

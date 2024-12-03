@@ -17,7 +17,7 @@ data Stmt =
   | StTyDef Tag (Set Uniq) [(Tag, [Type])]
   deriving Show
 
-newtype Eval m a = Eval (StateT ReplState m a)
+newtype Exec m a = Eval (StateT ReplState m a)
   deriving
     ( Functor
     , Applicative
@@ -28,7 +28,7 @@ newtype Eval m a = Eval (StateT ReplState m a)
     , MonadIO
     , MonadState ReplState)
 
-evalStmt :: (MonadIO m, MonadThrow m) => Stmt -> Eval m ()
+evalStmt :: (MonadIO m, MonadThrow m) => Stmt -> Exec m ()
 evalStmt (StTyDef t us secs) = do
   mapM_ (evalConDef t us) secs
   te <- use consEnv
@@ -36,11 +36,11 @@ evalStmt (StTyDef t us secs) = do
 evalStmt _ = putStrLn "not implemented."
 
 evalConDef :: (MonadIO m, MonadThrow m) 
-  => Tag -> Set Uniq -> (Tag, [Type]) -> Eval m ()
+  => Tag -> Set Uniq -> (Tag, [Type]) -> Exec m ()
 evalConDef name us (t, tys) = do
   let ty = TyCon name [TyVar u | u <- S.toList us]
       sc = Forall us (foldr tyFunc ty tys)
   consEnv %= insertCEnv t sc name
 
-runEval :: MonadIO m => Eval m a -> m a
+runEval :: MonadIO m => Exec m a -> m a
 runEval (Eval m) = evalStateT m initialState

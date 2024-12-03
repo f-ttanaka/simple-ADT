@@ -10,7 +10,11 @@ import Repl.State
 import SExpr.Parser
 import           System.Console.Repline hiding (options)
 
-type Repl = HaskelineT (Eval IO)
+type Repl = HaskelineT (Exec IO)
+
+-- discard error and continue to run repl 
+continueBy :: String -> Repl () -> Repl ()
+continueBy str m = m `catch` \(SomeException _) -> putStrLn str
 
 exec :: String -> Repl ()
 exec source = do
@@ -22,7 +26,7 @@ quit :: String -> Repl ()
 quit _ = exitSuccess
 
 seeType :: String -> Repl ()
-seeType source = do
+seeType source = continueBy "failed to typing" $ do
   (te,ce) <- getTyAndConsEnv
   e <- doParse parseExpr "<stdin>" (pack source)
   t <- runInfer e te ce
@@ -55,7 +59,7 @@ final = do
 -- Entry Point
 -------------------------------------------------------------------------------
 
-completer :: CompleterStyle (Eval IO)
+completer :: CompleterStyle (Exec IO)
 completer = Prefix (wordCompleter comp) defaultMatcher
 
 runRepl :: IO ()
