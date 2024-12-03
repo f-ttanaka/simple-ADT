@@ -26,6 +26,8 @@ source-repository head
 library
   exposed-modules:
       Common
+      Core.Calc.Eval
+      Core.Calc.Val
       Core.Env
       Core.Expr
       Core.Parser
