@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 module Core.Expr
   ( Expr(..)
+  , Case
   , Pat(..)
   , Var
   , Tag
@@ -16,8 +17,10 @@ data Expr =
   | ETag Tag
   | EAbs Var Expr
   | EApp Expr Expr
-  | ECase Expr [(Pat, Expr)]
+  | ECase Expr [Case]
   deriving Show
+
+type Case = (Pat, Expr)
 
 data Pat =
     PWildcard

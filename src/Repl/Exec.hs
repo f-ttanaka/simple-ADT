@@ -13,11 +13,11 @@ import           System.Console.Repline hiding (options)
 type Repl = HaskelineT (Exec IO)
 
 -- discard error and continue to run repl 
-continueBy :: String -> Repl () -> Repl ()
-continueBy str m = m `catch` \(SomeException _) -> putStrLn str
+continueBy :: Repl () -> Repl ()
+continueBy m = m `catch` \(SomeException e) -> print e
 
 exec :: String -> Repl ()
-exec source = do
+exec source = continueBy $ do
   stmt <- doParse parseStmt "<stdin>" (pack source)
   lift $ evalStmt stmt
 
@@ -26,10 +26,10 @@ quit :: String -> Repl ()
 quit _ = exitSuccess
 
 seeType :: String -> Repl ()
-seeType source = continueBy "failed to typing" $ do
+seeType source = continueBy $ do
   (te,ce) <- getTyAndConsEnv
   e <- doParse parseExpr "<stdin>" (pack source)
-  t <- runInfer e te ce
+  t <- runInfer e te ce []
   liftIO $ print t
 
 defaultMatcher :: [(String, CompletionFunc m)]
@@ -63,8 +63,8 @@ completer :: CompleterStyle (Exec IO)
 completer = Prefix (wordCompleter comp) defaultMatcher
 
 runRepl :: IO ()
-runRepl = runEval $
-  evalRepl (const . pure $ "listy> ")
+runRepl = runExec $
+  evalRepl (const . pure $ "repl> ")
            exec
            options
            (Just ':')

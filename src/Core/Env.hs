@@ -17,6 +17,9 @@ lookupTyEnv x (TyEnv env) = case M.lookup x env of
 insertTyEnv :: Var -> Scheme -> TyEnv -> TyEnv
 insertTyEnv x sc (TyEnv env) = TyEnv $ M.insert x sc env
 
+insertsTyEnv :: [(Var,Scheme)] -> TyEnv -> TyEnv
+insertsTyEnv binds (TyEnv env) = TyEnv $ M.union (M.fromList $ reverse binds) env
+
 data ConstructorInfo = CInfo
   { constructorType :: Scheme
   , patternType :: Tag }

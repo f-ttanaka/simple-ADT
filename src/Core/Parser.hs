@@ -21,6 +21,7 @@ parseExpr (SEList content) = case content of
     e <- parseExpr se
     xs <- mapM expectSym ses
     return $ F.foldr' EAbs e xs
+  [SESym "case", se, SEList cs] -> ECase <$> parseExpr se <*> mapM parseCase cs
   se : ses -> do
     e <- parseExpr se
     es <- mapM parseExpr ses
@@ -37,6 +38,8 @@ parseBinds = mapM parseBind
 
 parsePat :: MonadThrow m => SExpr -> m Pat
 parsePat (SESym "_") = return PWildcard
+parsePat (SETag t) = return $ PCons t []
+parsePat (SEList (SETag t : xs)) = PCons t <$> mapM expectSym xs
 parsePat _ = throwString "fail parsePat"
 
 parseCase :: MonadThrow m => SExpr -> m (Pat,Expr)

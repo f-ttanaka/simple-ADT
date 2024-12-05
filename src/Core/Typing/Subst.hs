@@ -57,7 +57,7 @@ unify ty (TyVar x) = unifyVar x ty
 unify (TyCon t1 ts1) (TyCon t2 ts2)
   | t1 == t2 = do
       subs <- zipWithM unify ts1 ts2
-      return $ F.foldl' (<>) mempty subs
+      return $ fold (reverse subs)
   | otherwise = throwString "unify failed."
 
 unifyVar :: MonadThrow m => Uniq -> Type -> m Subst
