@@ -8,7 +8,7 @@ module Common
   ) where
 
 import Control.Exception.Safe
-import Relude hiding (Type)
+import Relude hiding (Type, Constraint)
 import qualified Data.Set as S
 
 nth :: [a] -> Int -> a -> a

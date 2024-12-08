@@ -2,6 +2,7 @@ module Core.Typing.Subst where
 
 import Common
 import Control.Exception.Safe
+import Control.Monad (foldM)
 import Core.Env
 import Core.Expr
 import Core.Type
@@ -10,7 +11,7 @@ import qualified Data.Set as S
 import qualified Data.Foldable as F
 
 newtype Subst = Subst {subst :: M.Map Uniq Type}
-type Equation = (Type, Type)
+type Constraint = (Type, Type)
 
 instance Semigroup Subst where
   s1@(Subst sub1) <> (Subst sub2) = Subst $ M.map (apply s1) sub2 <> sub1
@@ -65,3 +66,12 @@ unifyVar x ty
   | TyVar x == ty = return mempty
   | x `occursIn` ty = throwString $ "Infinite type: '" ++ show ty ++ "'"
   | otherwise = return $ Subst (M.singleton x ty)
+
+solve :: MonadThrow m => [Constraint] -> m Subst
+solve = solveIter mempty
+  where
+    solveIter :: MonadThrow m => Subst -> [Constraint] -> m Subst
+    solveIter sub [] = return sub
+    solveIter sub ((t1,t2):cs) = do
+      sub' <- unify t1 t2
+      solveIter (sub' <> sub) (apply sub' cs)
