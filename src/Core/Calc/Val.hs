@@ -12,7 +12,8 @@ data Val =
   | VClo Var Expr ValEnv
 
 instance Show Val where
-  show (VTag t vs) = t ++ String.unwords [show v | v <- vs]
+  show (VTag t []) = t
+  show (VTag t vs) = "(" ++ String.unwords (t : [show v | v <- vs]) ++ ")"
   show VClo{} = "<<closure>>"
 
 newtype ValEnv = ValEnv (Map Var Val)

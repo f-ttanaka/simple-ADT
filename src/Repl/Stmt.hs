@@ -36,9 +36,15 @@ evalStmt (StTyDef t us secs) = mapM_ (evalConDef t us) secs
 evalStmt (StExprDef x e) = do
   (vEnv,tEnv,cEnv) <- getEnvs
   sc <- runInfer e tEnv cEnv [x]
-  let vEnv' = insertValEnv x (VClo x e vEnv') vEnv
-      tEnv' = insertTyEnv x sc tEnv
-  setEnvs vEnv' tEnv' cEnv
+  let tEnv' = insertTyEnv x sc tEnv
+  case e of
+    EAbs xAbs eBody -> do
+      let vEnv' = insertValEnv x (VClo xAbs eBody vEnv') vEnv
+      setEnvs vEnv' tEnv' cEnv
+    _ -> do
+      v <- runEval e vEnv
+      let vEnv' = insertValEnv x v vEnv
+      setEnvs vEnv' tEnv' cEnv
 evalStmt (StExpr e) = do
   vEnv <- getValEnv
   v <- runEval e vEnv
