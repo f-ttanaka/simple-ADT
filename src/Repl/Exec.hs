@@ -13,7 +13,7 @@ import           System.Console.Repline hiding (options)
 type Repl = HaskelineT (Exec IO)
 
 -- discard error and continue to run repl 
-continueBy :: Repl () -> Repl ()
+continueBy :: (MonadIO m, MonadCatch m) => m () -> m ()
 continueBy m = m `catch` \(SomeException e) -> print e
 
 exec :: String -> Repl ()
@@ -21,16 +21,22 @@ exec source = continueBy $ do
   stmt <- doParse parseStmt "<stdin>" (pack source)
   lift $ evalStmt stmt
 
--- :quit command
+-- command options
+-- :q
 quit :: String -> Repl ()
 quit _ = exitSuccess
 
+-- :t
 seeType :: String -> Repl ()
 seeType source = continueBy $ do
   (te,ce) <- getTyAndConsEnv
   e <- doParse parseExpr "<stdin>" (pack source)
   t <- runInfer e te ce []
   liftIO $ print t
+
+-- :l
+-- loadFile :: String -> Repl ()
+-- loadFile fName = continueBy $ do
 
 defaultMatcher :: [(String, CompletionFunc m)]
 defaultMatcher = []
