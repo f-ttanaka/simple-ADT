@@ -9,6 +9,7 @@ import           Repl.Stmt
 import Repl.State
 import SExpr.Parser
 import           System.Console.Repline hiding (options)
+import System.IO (hGetContents)
 
 type Repl = HaskelineT (Exec IO)
 
@@ -21,7 +22,10 @@ exec source = continueBy $ do
   stmt <- doParse parseStmt "<stdin>" (pack source)
   lift $ evalStmt stmt
 
--- command options
+-------------------------------------------------------------------------------
+-- Command Options
+-------------------------------------------------------------------------------
+
 -- :q
 quit :: String -> Repl ()
 quit _ = exitSuccess
@@ -35,8 +39,23 @@ seeType source = continueBy $ do
   liftIO $ print t
 
 -- :l
--- loadFile :: String -> Repl ()
--- loadFile fName = continueBy $ do
+loadFile :: String -> Repl ()
+loadFile fName = continueBy $ do
+  stmts <- liftIO $ withFile fName ReadMode $ \hdl -> do
+    contents <- hGetContents hdl
+    doParseFile parseFileContents fName (pack contents)
+  lift $ mapM_ evalStmt stmts
+
+options :: Options Repl
+options = [
+    ("q"   , quit)
+  , ("t", seeType)
+  , ("l", loadFile)
+  ]
+
+-------------------------------------------------------------------------------
+-- REPL details
+-------------------------------------------------------------------------------
 
 defaultMatcher :: [(String, CompletionFunc m)]
 defaultMatcher = []
@@ -44,17 +63,17 @@ defaultMatcher = []
 -- Default tab completer
 comp :: Monad m => WordCompleter m
 comp n = do
-  let cmds = [":q", ":t"]
+  let cmds = [":q", ":t", ":l"]
   return $ filter (isPrefixOf n) cmds
 
-options :: Options Repl
-options = [
-    ("q"   , quit)
-  , ("t", seeType)
-  ]
+completer :: CompleterStyle (Exec IO)
+completer = Prefix (wordCompleter comp) defaultMatcher
 
 ini :: Repl ()
-ini = putStrLn "REPL for listy"
+ini = do
+  loadFile "core/bool.sadt"
+  loadFile "core/nat.sadt"
+  putStrLn "REPL for simpleADT"
 
 final :: Repl ExitDecision
 final = do
@@ -64,9 +83,6 @@ final = do
 -------------------------------------------------------------------------------
 -- Entry Point
 -------------------------------------------------------------------------------
-
-completer :: CompleterStyle (Exec IO)
-completer = Prefix (wordCompleter comp) defaultMatcher
 
 runRepl :: IO ()
 runRepl = runExec $

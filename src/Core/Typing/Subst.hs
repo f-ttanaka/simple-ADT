@@ -56,9 +56,7 @@ unify :: MonadThrow m => Type -> Type -> m Subst
 unify (TyVar x) ty = unifyVar x ty
 unify ty (TyVar x) = unifyVar x ty
 unify (TyCon t1 ts1) (TyCon t2 ts2)
-  | t1 == t2 = do
-      subs <- zipWithM unify ts1 ts2
-      return $ fold (reverse subs)
+  | t1 == t2 = unifyMany ts1 ts2
   | otherwise = throwString "unify failed."
 
 unifyVar :: MonadThrow m => Uniq -> Type -> m Subst
@@ -66,6 +64,14 @@ unifyVar x ty
   | TyVar x == ty = return mempty
   | x `occursIn` ty = throwString $ "Infinite type: '" ++ show ty ++ "'"
   | otherwise = return $ Subst (M.singleton x ty)
+
+unifyMany :: MonadThrow m => [Type] -> [Type] -> m Subst
+unifyMany [] [] = return mempty
+unifyMany (t1:ts1) (t2:ts2) = do
+  sub <- unify t1 t2
+  sub' <- unifyMany (apply sub ts1) (apply sub ts2)
+  return $ sub' <> sub
+unifyMany ts1 ts2 = throwString $ "unification mismatch: " ++ show ts1 ++ show ts2
 
 solve :: MonadThrow m => [Constraint] -> m Subst
 solve = solveIter mempty

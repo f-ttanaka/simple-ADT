@@ -63,3 +63,13 @@ doParse :: MonadThrow m => (SExpr -> m a) -> SourceName -> Text -> m a
 doParse p src txt = do
   se <- parseSExpr src txt
   p se
+
+parseFileSExprs :: MonadThrow m => SourceName -> Text -> m [SExpr]
+parseFileSExprs src txt = case parse (many sExpr) src txt of
+  Left err -> throwString (show err)
+  Right ses -> return ses
+
+doParseFile :: MonadThrow m => ([SExpr] -> m a) -> SourceName -> Text -> m a
+doParseFile p src txt = do
+  ses <- parseFileSExprs src txt
+  p ses

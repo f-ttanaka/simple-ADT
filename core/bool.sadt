@@ -1,0 +1,18 @@
+(data Bool []
+  (True [])
+  (False []))
+
+(defn not [b]
+  (case b
+    [True False
+     False True]))
+
+(defn and [b1 b2]
+  (case b1
+    [True b2
+     False False]))
+
+(defn or [b1 b2]
+  (case b1
+    [True True
+     False b2]))
