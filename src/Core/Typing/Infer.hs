@@ -2,7 +2,6 @@
 module Core.Typing.Infer where
 
 import Common
-import Control.Exception.Safe (MonadThrow, throwString)
 import Core.Env
 import           Core.Expr
 import           Core.Type

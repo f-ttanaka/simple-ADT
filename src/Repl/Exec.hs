@@ -4,6 +4,7 @@ import Common
 import Core.Parser (parseExpr)
 import Core.Typing.Infer
 import           Data.Text         (pack)
+import Lib.Directory
 import Repl.Parser
 import           Repl.Stmt
 import Repl.State
@@ -21,6 +22,14 @@ exec :: String -> Repl ()
 exec source = continueBy $ do
   stmt <- doParse parseStmt "<stdin>" (pack source)
   lift $ evalStmt stmt
+
+evalFileContent :: (MonadTrans t, MonadIO m, MonadIO (t (Exec m)), MonadCatch m) =>
+  FilePath -> t (Exec m) ()
+evalFileContent fp = do
+    stmts <- liftIO $ withFile fp ReadMode $ \hdl -> do
+               c <- hGetContents hdl
+               doParseFile parseFileContents fp (pack c)
+    lift $ mapM_ evalStmt stmts
 
 -------------------------------------------------------------------------------
 -- Command Options
@@ -40,11 +49,7 @@ seeType source = continueBy $ do
 
 -- :l
 loadFile :: String -> Repl ()
-loadFile fName = continueBy $ do
-  stmts <- liftIO $ withFile fName ReadMode $ \hdl -> do
-    contents <- hGetContents hdl
-    doParseFile parseFileContents fName (pack contents)
-  lift $ mapM_ evalStmt stmts
+loadFile fName = continueBy $ evalFileContent fName
 
 options :: Options Repl
 options = [
@@ -71,9 +76,8 @@ completer = Prefix (wordCompleter comp) defaultMatcher
 
 ini :: Repl ()
 ini = do
-  loadFile "core/bool.sadt"
-  loadFile "core/nat.sadt"
-  putStrLn "REPL for simpleADT"
+  fps <- liftIO $ getAllFilePaths "core"
+  forM_ fps evalFileContent
 
 final :: Repl ExitDecision
 final = do

@@ -7,11 +7,9 @@ import Core.Calc.Eval
 import Core.Calc.Val
 import Core.Env
 import Core.Expr
-import Core.Parser
 import Core.Type
 import Core.Typing.Infer
 import qualified Data.Set as S
-import Control.Exception.Safe (MonadThrow, throwString)
 import Repl.State
 
 data Stmt =

@@ -1,10 +1,7 @@
 module Core.Parser where
 
 import Common
-
-import Control.Exception.Safe
 import Core.Expr
-import Core.Type (Type(..))
 import qualified Data.Foldable as F
 -- import Data.String (unwords)
 import SExpr.Internal

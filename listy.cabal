@@ -34,6 +34,7 @@ library
       Core.Type
       Core.Typing.Infer
       Core.Typing.Subst
+      Lib.Directory
       Repl.Exec
       Repl.Parser
       Repl.State
@@ -55,7 +56,9 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
+    , directory
     , exceptions
+    , filepath
     , lens
     , mtl
     , parsec
@@ -82,7 +85,9 @@ executable listy-exe
   build-depends:
       base >=4.7 && <5
     , containers
+    , directory
     , exceptions
+    , filepath
     , lens
     , listy
     , mtl
@@ -111,7 +116,9 @@ test-suite listy-test
   build-depends:
       base >=4.7 && <5
     , containers
+    , directory
     , exceptions
+    , filepath
     , lens
     , listy
     , mtl

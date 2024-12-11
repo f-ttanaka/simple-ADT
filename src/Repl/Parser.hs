@@ -1,15 +1,12 @@
 module Repl.Parser where
 
 import Common hiding (seq)
-
-import Control.Exception.Safe (MonadThrow, throwString)
 import Core.Expr
 import Core.Parser
 import Core.Type
 import qualified Data.Map as M
 import qualified Data.Set as S
 import SExpr.Internal
-import SExpr.Parser
 import Repl.Stmt
 
 type TyVarMap = Map Var Uniq

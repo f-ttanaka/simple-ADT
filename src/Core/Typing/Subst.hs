@@ -1,14 +1,10 @@
 module Core.Typing.Subst where
 
 import Common
-import Control.Exception.Safe
-import Control.Monad (foldM)
 import Core.Env
-import Core.Expr
 import Core.Type
 import qualified Data.Map as M
 import qualified Data.Set as S
-import qualified Data.Foldable as F
 
 newtype Subst = Subst {subst :: M.Map Uniq Type}
 type Constraint = (Type, Type)
