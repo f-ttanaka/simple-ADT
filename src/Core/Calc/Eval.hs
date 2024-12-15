@@ -38,11 +38,17 @@ eval (ECase e cs) = do
 
 evalMatch :: MonadThrow m => Val -> [Case] -> Eval m Val
 evalMatch _ [] = throwString "failed to pattern-match."
-evalMatch val ((pat,eCase):cs) = case (val, pat) of
-  (VTag tagV vs, PCons tagP xs)
-    | tagV == tagP -> local (insertsValEnv $ zip xs vs) (eval eCase)
-  (_, PWildcard) -> eval eCase
-  _ -> evalMatch val cs
+evalMatch val ((pat,eCase):cs) = case inspectPat val pat of
+  Just binds -> local (insertsValEnv binds) (eval eCase)
+  Nothing -> evalMatch val cs
+
+inspectPat :: Val -> Pat -> Maybe [(Var, Val)]
+inspectPat (VTag tagV vs) (PCons tagP ps)
+  | tagV == tagP = fold <$> zipWithM inspectPat vs ps
+  | otherwise = Nothing
+inspectPat _ PWildcard = return []
+inspectPat v (PVar x) = return [(x,v)]
+inspectPat _ _ = Nothing
 
 runEval :: MonadCatch m => Expr -> ValEnv -> m Val
 runEval e = runReaderT $ unWrapEval (eval e)

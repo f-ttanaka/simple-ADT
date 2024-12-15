@@ -24,5 +24,6 @@ type Case = (Pat, Expr)
 
 data Pat =
     PWildcard
-  | PCons Tag [Var]
+  | PVar Var
+  | PCons Tag [Pat]
   deriving Show

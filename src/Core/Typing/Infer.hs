@@ -98,13 +98,16 @@ checkCase ty (pat, ex) = do
   where
     checkPattern :: MonadThrow m => Type -> Pat -> Infer m ([Constraint], [(Var,Scheme)])
     checkPattern _ PWildcard = return mempty
+    checkPattern scr (PVar x) = do
+      sc <- generalize scr
+      return (mempty, [(x, sc)])
     checkPattern scr (PCons c ps) = do
       pVars <- mapM (const freshVar) ps
       cInfo <- lookupCInfo c =<< askCEnv
+      (subCs, subBinds) <- fold <$> zipWithM checkPattern pVars ps
       let pType = foldr tyFunc scr pVars
       cType <- instanciate (constructorType cInfo)
-      pScs <- mapM generalize pVars
-      return ([(pType, cType)], zip ps pScs)
+      return ((pType, cType) : subCs, subBinds)
 
 -- start to execute inference monad
 

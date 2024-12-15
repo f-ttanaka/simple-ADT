@@ -34,9 +34,11 @@ parseBinds = mapM parseBind
     parseBind _ = throwString "fail parseBind"
 
 parsePat :: MonadThrow m => SExpr -> m Pat
-parsePat (SESym "_") = return PWildcard
+parsePat (SESym x) = return $ case x of
+  "_" -> PWildcard
+  _ -> PVar x
 parsePat (SETag t) = return $ PCons t []
-parsePat (SEList (SETag t : xs)) = PCons t <$> mapM expectSym xs
+parsePat (SEList (SETag t : xs)) = PCons t <$> mapM parsePat xs
 parsePat _ = throwString "fail parsePat"
 
 parseCase :: MonadThrow m => SExpr -> SExpr -> m (Pat,Expr)
