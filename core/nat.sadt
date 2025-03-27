@@ -1,4 +1,4 @@
-data Nat = Zero | Succ Nat
+data Nat = Zero | Succ Nat ;
 
 def add n m = match n with 
   | Zero -> m 
