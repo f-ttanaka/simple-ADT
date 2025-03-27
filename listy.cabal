@@ -25,22 +25,22 @@ source-repository head
 
 library
   exposed-modules:
-      Common
-      Core.Calc.Eval
-      Core.Calc.Val
-      Core.Env
-      Core.Expr
-      Core.Parser
-      Core.Type
-      Core.Typing.Infer
-      Core.Typing.Subst
-      Lib.Directory
-      Repl.Exec
-      Repl.Parser
-      Repl.State
-      Repl.Stmt
-      SExpr.Internal
-      SExpr.Parser
+      SADT.Common
+      SADT.Data.Env
+      SADT.Data.Expr
+      SADT.Data.Stmt
+      SADT.Data.Type
+      SADT.Data.Val
+      SADT.Eval
+      SADT.Parser.Expr
+      SADT.Parser.Internal
+      SADT.Parser.Stmt
+      SADT.Repl.Exec
+      SADT.Repl.State
+      SADT.Repl.Stmt
+      SADT.Typing.Infer
+      SADT.Typing.Subst
+      SADT.Util.Directory
   other-modules:
       Paths_listy
   autogen-modules:

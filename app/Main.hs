@@ -1,7 +1,7 @@
 module Main (main) where
 
-import Common (IO)
-import Repl.Exec (runRepl)
+import SADT.Common (IO)
+import SADT.Repl.Exec (runRepl)
 
 main :: IO ()
 main = runRepl

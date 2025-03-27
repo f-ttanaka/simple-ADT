@@ -1,74 +1,78 @@
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
-module Core.Typing.Infer where
 
-import Common
-import Core.Env
-import           Core.Expr
-import           Core.Type
-import           Core.Typing.Subst
-import qualified Data.Map          as M
-import qualified Data.Set          as S
+module SADT.Typing.Infer where
+
+import qualified Data.Map as M
+import qualified Data.Set as S
+import SADT.Common
+import SADT.Data.Env
+import SADT.Data.Expr
+import SADT.Data.Type
+import SADT.Typing.Subst
 
 type TIEnv = (TyEnv, ConstructorEnv)
+
 type InferState = Int
+
 newtype Infer m a = Infer (ReaderT TIEnv (StateT InferState m) a)
   deriving
-    ( Functor
-    , Applicative
-    , Monad
-    , MonadReader TIEnv
-    , MonadState InferState
-    , MonadThrow)
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadReader TIEnv,
+      MonadState InferState,
+      MonadThrow
+    )
 
 -- operations on env
 
 initialInferState :: InferState
 initialInferState = 0
 
-askTyEnv :: Monad m => Infer m TyEnv
+askTyEnv :: (Monad m) => Infer m TyEnv
 askTyEnv = fst <$> ask
 
-askCEnv :: MonadThrow m => Infer m ConstructorEnv
+askCEnv :: (MonadThrow m) => Infer m ConstructorEnv
 askCEnv = snd <$> ask
 
-localTyEnv :: Monad m => (TyEnv -> TyEnv) -> Infer m a -> Infer m a
+localTyEnv :: (Monad m) => (TyEnv -> TyEnv) -> Infer m a -> Infer m a
 localTyEnv f = local (first f)
 
-findTy :: MonadThrow m => Var -> Infer m Type
+findTy :: (MonadThrow m) => Var -> Infer m Type
 findTy x = do
   sc <- lookupTyEnv x =<< askTyEnv
   instanciate sc
 
-findConsTy :: MonadThrow m => Tag -> Infer m Type
+findConsTy :: (MonadThrow m) => Tag -> Infer m Type
 findConsTy t = do
   cInfo <- lookupCInfo t =<< askCEnv
   instanciate (constructorType cInfo)
 
 --- inference processes
 
-freshVar :: MonadThrow m => Infer m Type
+freshVar :: (MonadThrow m) => Infer m Type
 freshVar = do
   i <- get
   put (succ i)
   return $ TyVar i
 
-freshScheme :: MonadThrow m => Infer m Scheme
+freshScheme :: (MonadThrow m) => Infer m Scheme
 freshScheme = Forall mempty <$> freshVar
 
-instanciate :: MonadThrow m => Scheme -> Infer m Type
+instanciate :: (MonadThrow m) => Scheme -> Infer m Type
 instanciate (Forall xs t) = do
   let tvs = S.toList xs
   tvs' <- mapM (const freshVar) tvs
   let sub = Subst $ M.fromList (zip tvs tvs')
   return $ apply sub t
 
-generalize :: MonadThrow m => Type -> Infer m Scheme
+generalize :: (MonadThrow m) => Type -> Infer m Scheme
 generalize ty = do
   tEnv <- askTyEnv
   let xs = ftv ty `S.difference` ftv tEnv
   return $ Forall xs ty
 
-inferType :: MonadThrow m => Expr -> Infer m (Type, [Constraint])
+inferType :: (MonadThrow m) => Expr -> Infer m (Type, [Constraint])
 inferType (EVar x) = (,[]) <$> findTy x
 inferType (ETag tag) = (,[]) <$> findConsTy tag
 inferType (EAbs var body) = do
@@ -89,14 +93,14 @@ inferType (ECase e cases) = do
   return (tyRes, c3 <> c2 <> c1)
 
 -- receives expected types of pattern and return expr
-checkCase :: MonadThrow m => Type -> (Pat,Expr) -> Infer m (Type, [Constraint])
+checkCase :: (MonadThrow m) => Type -> (Pat, Expr) -> Infer m (Type, [Constraint])
 checkCase ty (pat, ex) = do
   tyVar <- freshVar
   (cs1, binds) <- checkPattern tyVar pat
   (tyEx, cs2) <- localTyEnv (insertsTyEnv binds) (inferType ex)
   return (tyEx, ((tyVar, ty) : cs1) ++ cs2)
   where
-    checkPattern :: MonadThrow m => Type -> Pat -> Infer m ([Constraint], [(Var,Scheme)])
+    checkPattern :: (MonadThrow m) => Type -> Pat -> Infer m ([Constraint], [(Var, Scheme)])
     checkPattern _ PWildcard = return mempty
     checkPattern scr (PVar x) = do
       sc <- generalize scr
@@ -111,18 +115,18 @@ checkCase ty (pat, ex) = do
 
 -- start to execute inference monad
 
-inferScheme :: MonadThrow m => Expr -> Infer m Scheme
+inferScheme :: (MonadThrow m) => Expr -> Infer m Scheme
 inferScheme e = do
   (ty, cs) <- inferType e
   sub <- solve cs
   generalize (apply sub ty)
 
-inferWithInitialBinds :: MonadCatch m => [Var] -> Expr -> Infer m Scheme
+inferWithInitialBinds :: (MonadCatch m) => [Var] -> Expr -> Infer m Scheme
 inferWithInitialBinds xs e = do
   tVars <- mapM (const $ generalize =<< freshVar) xs
   localTyEnv (insertsTyEnv (zip xs tVars)) (inferScheme e)
 
-runInfer :: MonadCatch m => Expr -> TyEnv -> ConstructorEnv -> [Var] -> m Scheme
-runInfer e tEnv cEnv xs = evalStateT (runReaderT m (tEnv,cEnv)) initialInferState
+runInfer :: (MonadCatch m) => Expr -> TyEnv -> ConstructorEnv -> [Var] -> m Scheme
+runInfer e tEnv cEnv xs = evalStateT (runReaderT m (tEnv, cEnv)) initialInferState
   where
     Infer m = inferWithInitialBinds xs e

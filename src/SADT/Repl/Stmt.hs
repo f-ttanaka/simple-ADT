@@ -1,38 +1,35 @@
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
-module Repl.Stmt where
 
-import Common
+module SADT.Repl.Stmt where
+
 import Control.Lens
-import Core.Calc.Eval
-import Core.Calc.Val
-import Core.Env
-import Core.Expr
-import Core.Type
-import Core.Typing.Infer
 import qualified Data.Set as S
-import Repl.State
-
-data Stmt =
-    StExprDef Var Expr
-  | StExpr Expr
-  | StTyDef Tag (Set Uniq) [(Tag, [Type])]
-  deriving Show
+import SADT.Common
+import SADT.Data.Env
+import SADT.Data.Expr
+import SADT.Data.Stmt
+import SADT.Data.Type
+import SADT.Data.Val
+import SADT.Eval
+import SADT.Repl.State
+import SADT.Typing.Infer
 
 newtype Exec m a = Exec (StateT ReplState m a)
   deriving
-    ( Functor
-    , Applicative
-    , Monad
-    , MonadThrow
-    , MonadCatch
-    , MonadMask
-    , MonadIO
-    , MonadState ReplState)
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadThrow,
+      MonadCatch,
+      MonadMask,
+      MonadIO,
+      MonadState ReplState
+    )
 
 evalStmt :: (MonadIO m, MonadCatch m) => Stmt -> Exec m ()
 evalStmt (StTyDef t us secs) = mapM_ (evalConDef t us) secs
 evalStmt (StExprDef x e) = do
-  (vEnv,tEnv,cEnv) <- getEnvs
+  (vEnv, tEnv, cEnv) <- getEnvs
   sc <- runInfer e tEnv cEnv [x]
   let tEnv' = insertTyEnv x sc tEnv
   case e of
@@ -48,11 +45,11 @@ evalStmt (StExpr e) = do
   v <- runEval e vEnv
   print v
 
-evalConDef :: Monad m => Tag -> Set Uniq -> (Tag, [Type]) -> Exec m ()
+evalConDef :: (Monad m) => Tag -> Set Uniq -> (Tag, [Type]) -> Exec m ()
 evalConDef name us (t, tys) = do
   let ty = TyCon name [TyVar u | u <- S.toList us]
       sc = Forall us (foldr tyFunc ty tys)
   consEnv %= insertCEnv t sc name
 
-runExec :: MonadIO m => Exec m a -> m a
+runExec :: (MonadIO m) => Exec m a -> m a
 runExec (Exec m) = evalStateT m initialState

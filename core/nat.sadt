@@ -1,8 +1,6 @@
-(data Nat []
-  (Zero [])
-  (Succ [Nat]))
+data Nat = Zero | Succ Nat
 
-(defn add [n m]
-  (case n
-    [Zero m
-     (Succ k) (Succ (add k m))]))
+def add n m = match n with 
+  | Zero -> m 
+  | Succ k -> Succ (add k m)
+  ;

@@ -1,6 +1,6 @@
-module Lib.Directory where
+module SADT.Util.Directory where
 
-import Common
+import SADT.Common
 import System.Directory
 import System.FilePath
 
